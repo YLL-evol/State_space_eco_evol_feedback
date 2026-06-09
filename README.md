@@ -114,10 +114,10 @@ $$
 - Noise strongly affects inference of coupling strength
 - Directionality of feedback is not easily recoverable from observation alone
 
-![image](./Fig.1_N(t)_Z(t)_time_series.jpg)
-![image](./Fig.2_latent_vs_observed.jpg)
-![image](./Fig.3_recovery_vs_noise.jpg)
-![image](./Fig.4_vector_space.jpg)
+<img src="./Fig.1_N(t)_Z(t)_time_series.jpg" width = "50%" height = "50%">
+<img src="./Fig.2_latent_vs_observed.jpg" width = "50%" height = "50%">
+<img src="./Fig.3_recovery_vs_noise.jpg" width = "50%" height = "50%">
+<img src="./Fig.4_vector_space.jpg" width = "50%" height = "50%">
 
 ---
 
@@ -138,3 +138,77 @@ $$
 - Application to real ecological time series
 - Multi-trait and multivariate extensions
 - Model selection between competing eco-evo hypotheses
+
+---
+
+# 8. Bayesian inference meta code
+
+def process_model(state_t, θ):  
+    N_t, z_t = state_t  
+  
+    N_next = N_t + r*N_t*(1 - N_t/K) + G*z_t  
+    z_next = z_t + β*N_t + evo_noise  
+  
+    return N_next, z_next  
+  
+def observation_model(state_t):  
+    N, z = state_t  
+  
+    N_obs = N + normal(0, σ_N)  
+    z_obs = z + normal(0, σ_z)  
+   
+    return N_obs, z_obs  
+  
+θ ~ Prior distribution  
+  
+r ~ Normal(1.0, 0.5)  
+K ~ LogNormal(...)  
+G ~ Normal(0, 1)  
+β ~ Normal(0, 1)  
+σ ~ HalfNormal(...)  
+  
+for i in range(N_particles):  
+    θ_i ~ prior   
+    state_i[0] ~ init_distribution  
+  
+--- MCMC ---  
+  
+for iteration in range(T):  
+  
+    θ_proposal = propose(θ_current)  
+  
+    # simulate model  
+    simulated_data = simulate(process_model, θ_proposal)  
+  
+    # compute likelihood  
+    L_new = likelihood(simulated_data, observed_data)  
+    L_old = likelihood(current_simulation, observed_data)  
+  
+    acceptance_ratio = (L_new * prior(θ_new)) / (L_old * prior(θ_old))  
+  
+    if random() < acceptance_ratio:  
+        θ_current = θ_proposal  
+  
+--- Particle filter ---    
+  
+initialize particles:  
+    for i:  
+        state_i ~ prior  
+        weight_i = 1/N  
+  
+for t in time_series:  
+  
+    # 1. propagate  
+    for particle i:  
+        state_i = process_model(state_i, θ) + noise  
+  
+    # 2. compute weights  
+    for particle i:  
+        weight_i = likelihood(observation_t | state_i)  
+  
+    # 3. normalize  
+    weights = normalize(weights)  
+   
+    # 4. resample  
+    particles = resample(particles, weights)  
+  
